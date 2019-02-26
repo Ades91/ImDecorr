@@ -1,0 +1,207 @@
+
+% Author : Adrien Descloux
+% Image quality estimation based on a decorrelation analysis
+%
+% The analysis is parameter free and allows independent estimation of 
+% image resolution and SNR.
+%
+% function [kcMax,A0,kcGM,d0,d] = getDcorrSect(im,r,N,Na,figID)
+% 
+% optional input :
+%       r : specify the range and sampling of dcorr analysis
+%       N : Number of high-pass image
+% 		Na : Number of angular sector 
+%       figID : if > 0, display results in figure(figID)
+          
+function [kcMax,A0,kcGM,d0,d] = getDcorrSect(im,r,Ng,Na,figID)
+            
+if nargin < 5; figID = 0; end
+if nargin < 4; Na = 2; end % default is 2 angles [0,90]
+if nargin < 3; Ng = 10;  end
+if nargin < 2; r = linspace(0,1,50); end
+
+
+a = linspace(-pi,pi,2*Na+1);
+
+im = single(im);
+
+if mod(size(im,2),2) == 0
+    im = im(1:end-1,1:end-1);
+end
+
+if figID 
+    hwait = waitbar(0,'Computing 2D dcorr');
+end
+
+Nr = length(r);
+
+[X,Y] = meshgrid(linspace(-1,1,size(im,2)),linspace(-1,1,size(im,1)));
+R = sqrt(X.^2 + Y.^2);
+th = imrotate(atan2(Y,X),rad2deg(pi/(2*Na)),'crop');
+mask0 = R.^2 < 1^2;
+
+% clean fourier spare of input image
+Ik = mask0.*fftshift(fftn(fftshift(im)));
+imr = real(ifftshift(ifftn(ifftshift(Ik))));
+mt = zeros(size(mask0));
+
+% compute dcorr 0 and find its maxima for all angles
+for na = 1:Na
+    
+    % define proper Fourier mask
+    maskA = (th >= a(na) & th < a(na+1)) | (th >= a(Na+na) & th < a(Na+na+1));
+    mt = mt + na.*maskA;
+    Ir = mask0.*maskA.*fftshift(fftn(fftshift(imr)));
+    
+    % Fourier space normalization
+    I = Ir./abs(Ir);
+    I(isinf(I)) = 0; I(isnan(I)) = 0;
+
+    c = sqrt(sum(sum(abs(Ir).^2)));
+
+    count = 0;
+    r0 = linspace(0,1,Nr); 
+
+    for k = length(r0):-1:1
+        rt = r0(k);
+        mask  = R.^2 < rt.^2;
+        
+        temp = mask.*I;
+        temp((end+1)/2,(end+1)/2) = 0; % remove the mean
+    
+        cc = gather(getCorrcoef(Ir,temp,c));
+    
+        nanmap = isnan(cc);
+        cc(nanmap) = 0; % remove nan
+    
+        d0(k,na) = cc; % gather if input image is gpuArray 
+        count = count +1;
+        if figID 
+            waitbar(0.1*count/(Na*Nr),hwait);
+        end
+    end
+end
+for na = 1:Na
+    [ind(na),snr0(na)] = getDcorrMax(d0(:,na));
+end
+
+% Display the sectorial mask
+% figure;imagesc(mask0.*mt)
+
+gMax = 1./r0(min(ind));
+mapinf = isinf(gMax);
+gMax(mapinf) = 2/r0(2);
+
+% automatic search of best geometric mean
+g = exp(linspace(log(gMax),log(0.14),Ng));
+
+d = []; kc = []; SNR = []; gm = []; ind =[];
+r2 = repmat(r0,[Na 1]);
+for refin = 1:2 % two step refinement
+    for na = 1:Na
+        
+        % define proper Fourier mask
+        maskA = (th >= a(na) & th <= a(na+1)) | (th >= a(Na+na) & th <= a(Na+na+1));
+        
+        for h = 1:length(g)
+            imt = imr - imgaussfilt(imr,g(h));
+            
+            Ir = mask0.*maskA.*fftshift(fftn(fftshift(imt)));
+            Ir((end+1)/2,(end+1)/2) = 0; % remove the mean
+            
+            c = sqrt(sum(sum(abs(Ir).^2)));
+            I = Ir./abs(Ir);
+            I(isinf(I)) = 0; I(isnan(I)) = 0;
+            
+            for k = size(r2,2):-1:1
+                rt = r2(na,k);
+                mask  = R.^2 < rt.^2;
+                temp = mask.*I;
+                temp((end+1)/2,(end+1)/2) = 0; % remove the mean
+                cc = gather(getCorrcoef(Ir,temp,c));
+                
+                map = isnan(cc); cc(map) = 0;
+                d(k,na,h) = cc; % gather if input image is gpuArray
+                count = count+1;
+                if figID
+                    waitbar(0.1 + 0.9*count/(Nr*Na*Ng*2),hwait);
+                end
+            end
+            
+        end
+        
+        for h =1:length(g)
+        	[ind(na,h),snr(na,h)] = getDcorrMax(d(:,na,h));
+        end
+        
+        kc(na,:) = r2(na,ind(na,:));
+        SNR(na,:) = snr(na,:);
+        gm(na,:) = sqrt(snr(na,:).*r2(na,ind(na,:)));
+        
+    end
+            % refining the high-pass threshold and the radius sampling
+        if refin == 1
+            [~,ind] = max(gm,[],2);
+            map1 = ind == 1;
+            mapend = ind == length(g);
+            ind(map1) = 2;
+            ind(mapend) = size(g,1) - 1;
+            
+            g1 = g(min(ind)-1); g2 = g(max(ind)+1);
+            g = exp(linspace(log(g1),log(g2),Ng));
+            
+            r2 = [];
+            for na = 1:Na
+                rmin = kc(na,ind(na)); rmax = kc(na,ind(na))+0.2;
+                map0 = rmin < 0; rmin(map0) = 0;
+                map1 = rmax > 1; rmax(map1) = 1;
+                r2(na,:) = linspace(rmin,rmax,50);
+            end
+            
+            dtemp = d;
+        end
+end
+
+% keep all data
+d = cat(3,dtemp,d);
+
+% need at least 0.05 of SNR to be even considered
+kc(SNR < 0.05) = 0;
+SNR(SNR < 0.05) = 0;
+snr = SNR;
+
+kcMax = zeros(Na,1); kcGM = kcMax; A0 = kcMax;
+for na = 1:Na
+	if sum(kc(na,:)) > 0
+        % highest resolution found 
+        [kcMax(na),ind] = max(kc(na,:));
+        SNRMax(na) = SNR(na,ind);
+
+        % compute the geometric mean to determine the best res/SNR curve
+        gm = sqrt(kc(na,:).*SNR(na,:));
+        [~,ind] = max(gm);
+
+        kcGM(na) = kc(na,ind);
+        A0(na) = snr0(na); % average image contrast has to be estimated from original image
+    else
+        kcMax(na) = r(2);
+        SNRMax(na) = 0;
+        kcGM(na) = r(2);
+        SNRout(na) = 0;
+    end
+end
+
+if figID
+    waitbar(1,hwait);
+    delete(hwait)
+end
+if figID
+    x = linspace(-1,1,size(im,2)); y = linspace(-1,1,size(im,1));
+    figure(figID)
+    imagesc(x,y,log(abs(Ik)+1))
+    hold on
+    th = linspace(0,2*pi,2*Na+1)';
+    
+    plot(cos(th).*[kcMax; kcMax; kcMax(1)],sin(th).*[kcMax; kcMax; kcMax(1)],'w--','linewidth',1.5)
+    hold off
+end
