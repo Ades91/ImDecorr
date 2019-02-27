@@ -288,17 +288,18 @@ public class ImageDecorrelationAnalysis_ implements PlugIn {
 	static void displayAbout() {
 		
 		/* 
-		 * Version 1.1.1: Fixed compatibility issues with micro-manager 1.4
-		 * Version 1.1.2: Removed all logs output. Reordered results table output
-		 * Version 1.1.3: Added Input variable check
-		 * Version 1.1.4: Added comment and formating for releasek=
-		 * 
+		 * Version 1.1.1: 	Fixed compatibility issues with micro-manager 1.4
+		 * Version 1.1.2: 	Removed all logs output. Reordered results table output
+		 * Version 1.1.3: 	Added Input variable check
+		 * Version 1.1.4: 	Added comment and formating for release
+		 * Version 1.1.5: 	Changed resolution criterion to max freq. instead of GM
+		 * 					Renamed variables to be consistent with Matlab code and manuscript
 		 */
 		
 		JOptionPane.showMessageDialog(null, 
 				  "                             Author : Adrien Descloux\n"
 				+ "                            LBEN STI EPFL Switzerland\n"  
-				+ "                                           Version 1.1.4\n"
+				+ "                                           Version 1.1.5\n"
 				+"This program is free software: you can redistribute it and/or modify\r\n" + 
 				"it under the terms of the GNU General Public License as published by\r\n" 	+ 
 				"the Free Software Foundation, either version 2 of the License, or\r\n" 	+ 

@@ -96,7 +96,7 @@ for h = 1:length(g)
         d(k,dc) = gather(cc); % gather if input image is gpuArray
         count = count+1;
         if figID
-            waitbar(0.1 + 0.9*count/(Nr*N*2),hwait);
+            waitbar(0.1 + 0.9*count/(Nr*Ng*2),hwait);
         end
     end
     dc = dc + 1;
