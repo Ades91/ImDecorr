@@ -71,8 +71,6 @@ end
 [ind,snr0] = getDcorrMax(d0);
 res0 = r(ind);
 
-% t1 = toc(t0);disp(['D0 computation time : ',num2str(t1)])
-
 gMax = 2/r0(ind);
 if isinf(gMax); gMax = max(size(im,1),size(im,2))/2;end
 
@@ -122,16 +120,17 @@ if refin == 1
     ind1 = min(indgm,indmax);
     ind2 = max(indgm,indmax);
     if ind1 == 1
-        ind1 = 2;
+        ind1 = 1;
+        ind2 = 1;
     elseif ind2 == length(g)
         ind2 = length(g)-1;
     end
-    g1 = (g(ind1)); g2 = (g(ind2+1));
+    g1 = g(ind1); g2 = g(ind2+1);
     g = exp(linspace(log(g1),log(g2),Ng));
     
     % radius sampling refinement
     [~,ind] = max(gm);
-    r1 = kc(ind)-0.05; r2 = kc(ind)+0.2;
+    r1 = kc(ind)-0.05; r2 = kc(ind)+0.3;
     if r1 < 0 ; r1 = 0; end
     if r2 > 1; r2 = 1; end
     r = linspace(r1,r2,Nr);
@@ -141,12 +140,6 @@ end
 % release GPU memory
 
 radAv = getRadAvg(gather(log(abs(Ik)+1)));
-    
-% gpuDevice(1);
-
-% % keep only refined data
-% kc = kc(N+1:end);
-% SNR = SNR(N+1:end);
 
 % add d0 results to the analysis (usefull for high noise images)
 kc(end+1) = res0;
@@ -198,12 +191,11 @@ if figID
     plot(r0,d0,'linewidth',lnwd,'color','g')
     plot([kcMax kcMax],[0 1],'k')
     for k = 1:length(kc)
-        plot(kc(k),snr(k),'bx','linewidth',lnwd)
+        plot(kc(k),snr(k),'bx','linewidth',1)
     end
     hold off
     title(['Dcor analysis : res ~ ',num2str(kcMax,4),', SNR ~ ',num2str(A0,4)])
-    xlim([0 1])
-    ylim([0 1])
+    xlim([0 1]); ylim([0 1])
     xlabel('Normalized spatial frequencies')
     ylabel('C.c. coefficients')
 end

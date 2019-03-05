@@ -1,4 +1,3 @@
-
 % Author : Adrien Descloux
 % Image quality estimation based on a decorrelation analysis
 %
@@ -48,10 +47,11 @@ mt = zeros(size(mask0));
 % compute dcorr 0 and find its maxima for all angles
 for na = 1:Na
     
-    % define proper Fourier mask
-    maskA = (th >= a(na) & th < a(na+1)) | (th >= a(Na+na) & th < a(Na+na+1));
+    % define Fourier mask
+    maskA = (th >= a(na) & th <= a(na+1)) | (th >= a(Na+na) & th <= a(Na+na+1)) | R < 0.01;
     mt = mt + na.*maskA;
     Ir = mask0.*maskA.*fftshift(fftn(fftshift(imr)));
+    radAv(na,:) = getRadAvg(gather(log(abs(Ir)+1)));
     
     % Fourier space normalization
     I = Ir./abs(Ir);
@@ -198,10 +198,36 @@ end
 if figID
     x = linspace(-1,1,size(im,2)); y = linspace(-1,1,size(im,1));
     figure(figID)
-    imagesc(x,y,log(abs(Ik)+1))
+    imagesc(x,y,log(abs(fftshift(fftn(fftshift(apodImRect(im,20)))))+1))
     hold on
     th = linspace(0,2*pi,2*Na+1)';
     
     plot(cos(th).*[kcMax; kcMax; kcMax(1)],sin(th).*[kcMax; kcMax; kcMax(1)],'w--','linewidth',1.5)
     hold off
+    
+    figure(figID+1)
+    nsub = ceil(sqrt(Na));
+    for n =1:Na
+        subplot(nsub,nsub,n)
+    	lnwd = 1.5;
+        r0 = linspace(0,1,size(d,1));
+        plot(r0,squeeze(d(:,n,1:Ng)),'color',[0.2 0.2 0.2 0.5]);
+    	hold on
+      	radAv(n,1) = radAv(n,2); %for plot 
+        radAv(n,end) = radAv(n,end-1);
+      	plot(linspace(0,1,size(radAv,2)),linmap(radAv(n,:),0,1),'linewidth',lnwd,'color',[1 0 1])
+      	for k = 1:Ng
+         	plot(r2(n,:),squeeze(d(:,n,k+Ng:end)),'color',[0 0 (n-1)/Ng])
+        end
+       	plot(r0,d0(:,n),'linewidth',lnwd,'color','g')
+      	plot([kcMax(n) kcMax(n)],[0 1],'k')
+      	for k = 1:size(kc,2)
+            plot(kc(n,k),snr(n,k),'bx','linewidth',1)
+        end
+        hold off
+        title(['R: ',num2str(kcMax(n),2),', A: ',num2str(A0(n),2)])
+        xlim([0 1]); ylim([0 1])
+
+    end
+    
 end
