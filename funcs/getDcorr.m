@@ -1,15 +1,39 @@
-% Author : Adrien Descloux
-% Image quality estimation based on a decorrelation analysis
-%
-% The analysis is parameter free and allows independent estimation of 
-% image resolution and SNR.
-%
 % [kcMax,A0,kcGM,d0,d] = getDcorr(im,r,Ng,figID)
-% 
-% optional input :
-%       r : specify the range and sampling of dcorr analysis
-%       Ng : Number of high-pass image
-%       figID : if > 0, display results in figure(figID)
+% ---------------------------------------
+%
+% Estimate the image cut-off frequency based on decorrelation analysis
+%
+% Inputs:
+%  im        	2D image to be analyzed
+%  r           	Fourier space sampling of the analysis (default: r = linspace(0,1,50)
+%  Ng			Number of high-pass filtering (default: Ng = 10)
+%  figID		If figID > 1, curves will be plotted in figure(figID)
+%
+% Outputs:
+%  kcMax        Estimated cut-off frequency of the image in normalized frequency
+%  A0			Amplitude of the local maxima of d0
+%  kcGM			Estimated cut-off frequency using Geometric-Mean metric
+%  d0 			Decorrelation function before high-pass filtering
+%  d			All decorrelation functions
+%
+% ---------------------------------------
+%
+%   Copyright © 2018 Adrien Descloux - adrien.descloux@epfl.ch, 
+%   École Polytechnique Fédérale de Lausanne, LBEN/LOB,
+%   BM 5.134, Station 17, 1015 Lausanne, Switzerland.
+%
+%  	This program is free software: you can redistribute it and/or modify
+%  	it under the terms of the GNU General Public License as published by
+% 	the Free Software Foundation, either version 3 of the License, or
+%  	(at your option) any later version.
+%
+%  	This program is distributed in the hope that it will be useful,
+%  	but WITHOUT ANY WARRANTY; without even the implied warranty of
+%  	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%  	GNU General Public License for more details.
+%
+% 	You should have received a copy of the GNU General Public License
+%  	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 function [kcMax,A0,kcGM,d0,d] = getDcorr(im,r,Ng,figID)
 
@@ -26,9 +50,7 @@ if Ng < 10
 end
 
 im = double(im);
-if mod(size(im,1),2) == 0
-    im = im(1:end-1,1:end-1); % odd number of pixels
-end
+im = im(1:end-not(mod(size(im,1),2)),1:end-not(mod(size(im,2),2))); % odd number of pixels
 
 if figID
     hwait = waitbar(0,'Computing dcorr');

@@ -1,16 +1,40 @@
-% Author : Adrien Descloux
-% Image quality estimation based on a decorrelation analysis
+% [kcMax,A0,kcGM,d0,d] = getDcorrSect(im,r,Ng,Na,figID)
+% ---------------------------------------
 %
-% The analysis is parameter free and allows independent estimation of 
-% image resolution and SNR.
+% Estimate the image sectorial cut-off frequency based on decorrelation analysis
 %
-% function [kcMax,A0,kcGM,d0,d] = getDcorrSect(im,r,N,Na,figID)
-% 
-% optional input :
-%       r : specify the range and sampling of dcorr analysis
-%       N : Number of high-pass image
-% 		Na : Number of angular sector 
-%       figID : if > 0, display results in figure(figID)
+% Inputs:
+%  im        	2D image to be analyzed
+%  r           	Fourier space sampling of the analysis (default: r = linspace(0,1,50)
+%  Ng			Number of high-pass filtering (default: Ng = 10)
+%  Na 			Number of sectors
+%  figID		If figID > 1, curves will be plotted in figure(figID)
+%
+% Outputs:
+%  kcMax        Estimated cut-off frequency of the image in normalized frequency for each sectors
+%  A0			Amplitude of the local maxima of d0 for each sectors
+%  kcGM			Estimated cut-off frequency using Geometric-Mean metric for each sectors
+%  d0 			Decorrelation function before high-pass filtering for each sectors
+%  d			All decorrelation functions for each sectors
+%
+% ---------------------------------------
+%
+%   Copyright © 2018 Adrien Descloux - adrien.descloux@epfl.ch, 
+%   École Polytechnique Fédérale de Lausanne, LBEN/LOB,
+%   BM 5.134, Station 17, 1015 Lausanne, Switzerland.
+%
+%  	This program is free software: you can redistribute it and/or modify
+%  	it under the terms of the GNU General Public License as published by
+% 	the Free Software Foundation, either version 3 of the License, or
+%  	(at your option) any later version.
+%
+%  	This program is distributed in the hope that it will be useful,
+%  	but WITHOUT ANY WARRANTY; without even the implied warranty of
+%  	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%  	GNU General Public License for more details.
+%
+% 	You should have received a copy of the GNU General Public License
+%  	along with this program.  If not, see <http://www.gnu.org/licenses/>.
           
 function [kcMax,A0,kcGM,d0,d] = getDcorrSect(im,r,Ng,Na,figID)
             
