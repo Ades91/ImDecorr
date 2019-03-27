@@ -13,7 +13,7 @@
 % ---------------------------------------
 %
 %   Copyright © 2018 Adrien Descloux - adrien.descloux@epfl.ch, 
-%   École Polytechnique Fédérale de Lausanne, LBEN/LOB,
+%   Ecole Polytechnique Federale de Lausanne, LBEN,
 %   BM 5.134, Station 17, 1015 Lausanne, Switzerland.
 %
 %  	This program is free software: you can redistribute it and/or modify

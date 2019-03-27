@@ -13,7 +13,7 @@
 % ---------------------------------------
 %
 %   Copyright © 2018 Adrien Descloux - adrien.descloux@epfl.ch, 
-%   École Polytechnique Fédérale de Lausanne, LBEN/LOB,
+%   Ecole Polytechnique Federale de Lausanne, LBEN,
 %   BM 5.134, Station 17, 1015 Lausanne, Switzerland.
 %
 %  	This program is free software: you can redistribute it and/or modify
@@ -29,7 +29,7 @@
 % 	You should have received a copy of the GNU General Public License
 %  	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-function [ind,snr] = getDcorrMax(d)
+function [ind,A] = getDcorrMax(d)
 
 [A,ind] = max(d);
 t = d;
@@ -46,7 +46,7 @@ while ind == length(t)
         [A,ind] = max(t);
         % check if the peak is significantly larger than the former minimum
         if t(ind) - min(d(ind:end)) > dt 
-            breakA
+            break
         else
             t(ind) = min(d(ind:end));
             ind = length(t);
