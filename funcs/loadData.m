@@ -35,8 +35,12 @@ if nargin < 1
     path = [pname,filesep,fname];
 end
     
-
+info = imfinfo(path);
+w = info(1).Width; h = info(1).Height;
+bd = info(1).BitDepth/8;
+nf = floor(info(1).FileSize/(bd*w*h));
 keepReading = 1; k = 1;
+im = zeros(h,w,nf);
 warning('off')
 while keepReading 
     try
