@@ -51,7 +51,7 @@ for xx = 1:length(px)-1
 	for yy = 1:length(py)-1
         subIm = im(py(yy):py(yy+1),px(xx):px(xx+1),1);
         subIm = subIm(1:size(subIm,1)-not(mod(size(subIm,1),2)),1:size(subIm,2)-not(mod(size(subIm,2),2)));
-        [kc,A0] = getDcorr(subIm,r,Ng);
+        [kc,A0] = getDcorr(apodImRect(subIm,20),r,Ng);
         kcMap(yy,xx) = kc;
         A0Map(yy,xx) = A0;
 	end

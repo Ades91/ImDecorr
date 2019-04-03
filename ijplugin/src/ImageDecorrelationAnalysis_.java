@@ -253,6 +253,9 @@ public class ImageDecorrelationAnalysis_ implements PlugIn {
 				imp.setCalibration(im.getCalibration());
 				imp.setRoi(im.getRoi());
 				imp.setTitle(im.getTitle());
+				if(imp.getBitDepth()==24) { // if it is a RGB image
+					IJ.run(imp, "8-bit", ""); // Convert to gray scale
+				}
 				im = imp;
 			}
 			
