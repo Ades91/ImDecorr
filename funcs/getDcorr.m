@@ -73,7 +73,7 @@ c = sqrt(sum(sum(abs(Ir).^2)));
 
 % t0 = tic;
 count = 0;
-r0 = linspace(0,1,Nr);
+r0 = linspace(r(1),r(end),Nr);
 for k = length(r0):-1:1
     rt = r0(k);
     mask  = X.^2 + Y.^2 < rt^2;
@@ -155,7 +155,7 @@ if refin == 1
     r1 = kc(ind)-0.05; r2 = kc(ind)+0.3;
     if r1 < 0 ; r1 = 0; end
     if r2 > 1; r2 = 1; end
-    r = linspace(r1,r2,Nr);
+    r = linspace(r1,min(r2,r(end)),Nr);
     r2 = r;
 end
 end
@@ -201,7 +201,6 @@ end
 if figID
     lnwd = 1.5;
     figure(figID);
-    r0 = linspace(0,1,size(d,1));
     plot(r0,d(:,1:Ng),'color',[0.2 0.2 0.2 0.5]);
     hold on
     radAv(1) = radAv(2); %for plot 

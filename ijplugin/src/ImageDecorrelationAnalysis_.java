@@ -35,6 +35,7 @@ import javax.swing.*;
 import ij.IJ;
 import ij.ImagePlus;
 import ij.ImageStack;
+import ij.gui.Roi;
 import ij.plugin.PlugIn;
 
 
@@ -221,7 +222,6 @@ public class ImageDecorrelationAnalysis_ implements PlugIn {
 			
 			if (im == null){
 				// open file selections tool for images
-//				IJ.log("No image found");
 				IJ.open();
 				im = ij.WindowManager.getCurrentImage();
 				im.show();
@@ -229,14 +229,7 @@ public class ImageDecorrelationAnalysis_ implements PlugIn {
 
 			// check if current image has a rectangle ROI selection
 			if (im.getRoi() != null) {
-				if (im.getRoi().getType() == 0) {// Rectangle ROI
-//					IJ.log("Number of images : " + im.getStackIndex(im.getNChannels(), im.getNSlices(), im.getNFrames()));
-//					IJ.log("IN selection  : # slices " + im.getNSlices() + 
-//							", # frames " + im.getNFrames() + ", # channels " + im.getNChannels());
-//					im.show();
-
-//					for (int k = 0 ; k < im.getStackIndex(im.getNChannels(), im.getNSlices(), im.getNFrames()); k++) {
-//					}
+				if (im.getRoi().getType() == Roi.RECTANGLE) {// Rectangle ROI
 				}
 				else {
 					IJ.log(   "Non rectangular ROI not supported.\n"
@@ -253,31 +246,29 @@ public class ImageDecorrelationAnalysis_ implements PlugIn {
 				imp.setCalibration(im.getCalibration());
 				imp.setRoi(im.getRoi());
 				imp.setTitle(im.getTitle());
-				if(imp.getBitDepth()==24) { // if it is a RGB image
-					IJ.run(imp, "8-bit", ""); // Convert to gray scale
-				}
+				
 				im = imp;
 			}
 			
 			// Image ready to be processed
 			
-// Create ImageDecorrelationAnalysis object 
+			// Create ImageDecorrelationAnalysis object 
 			ImageDecorrelationAnalysis IDA = new ImageDecorrelationAnalysis(im,rmin,rmax,Nr,Ng,doPlot,null);
-// Run the analysis 
+			
+			// Run the analysis 
 			IDA.startAnalysis();
 			
 		}
 		else { // open selection tool for folder with images in them
 			ij.io.DirectoryChooser gd = new ij.io.DirectoryChooser("Please select a directory containing images to be processed.");
 			String dirPath = gd.getDirectory();
-//			IJ.log("DirPath : " + dirPath);
 			File dir = new File(dirPath);
 			String[] files = dir.list(new FilenameFilter() {
 				public boolean accept(File dir, String name) {
 					int index = name.indexOf('.', name.length()-5);
 					if (index != -1) {
 						String ext = name.substring(index, name.length());
-//						IJ.log("files extensions : " + ext);
+						
 						if (ext.equals(".tif") || ext.equals(".tiff") || ext.equals(".png") || 
 								ext.equals(".ome") || ext.equals(".bmp"))
 							return true;

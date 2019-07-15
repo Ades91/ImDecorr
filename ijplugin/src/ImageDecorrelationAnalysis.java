@@ -90,7 +90,7 @@ public class ImageDecorrelationAnalysis{
 		int nS = this.im.getNSlices();
 		int nF = this.im.getNFrames();
 		int nC = this.im.getNChannels();
-//		IJ.log("Processing image : # slices " + nS + ", # frames " + nF + ", # channels " + nC );
+		IJ.log("Processing image : # slices " + nS + ", # frames " + nF + ", # channels " + nC );
 		
 		// loop through all images 
 		for (int s = 1; s <= nS; s++)
