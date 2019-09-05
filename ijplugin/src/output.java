@@ -4,6 +4,11 @@
 %
 % ---------------------------------------
 %
+% A detailled description of the method can be found in : 
+% "Descloux, A., K. S. Grußmayer, and A. Radenovic. "Parameter-free image 
+% resolution estimation based on decorrelation analysis."
+% Nature methods (2019): 1-7."
+%
 %   Copyright © 2018 Adrien Descloux - adrien.descloux@epfl.ch, 
 %   École Polytechnique Fédérale de Lausanne, LBEN/LOB,
 %   BM 5.134, Station 17, 1015 Lausanne, Switzerland.

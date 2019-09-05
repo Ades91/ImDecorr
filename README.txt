@@ -1,3 +1,13 @@
+A detailled description of the method can be found in :+ 
+Descloux, A., K. S. Gruﬂmayer, and A. Radenovic. Parameter-free image 
+resolution estimation based on decorrelation analysis.
+Nature methods (2019): 1-7.
+
+If this software has been usefull to your research, please consider citing
+
+https://doi.org/10.1038/s41592-019-0515-7
+
+-------------------
 This README.txt file should be accompanied by
 
 * The plugin
