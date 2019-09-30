@@ -115,6 +115,7 @@ public class ImageDecorrelationAnalysis{
 //					IJ.showProgress(0);
 					
 // Grab current image and crop if possible
+//					long t0 = System.currentTimeMillis();
 					this.imRef = imp.getProcessor().crop();
 					
 //					IJ.log("Input image preprocessing (W : " + imRef.getWidth() + ", H : " + imRef.getHeight() + ")");
@@ -147,7 +148,7 @@ public class ImageDecorrelationAnalysis{
 //					I.show();
 					
 // Compute d0 curve
-//					long t0 = System.currentTimeMillis();
+
 //					IJ.log("Compute Dcor curve");
 					computeD0(Ir); 
 //					long t1 = System.currentTimeMillis();
@@ -166,7 +167,7 @@ public class ImageDecorrelationAnalysis{
 //					t0 = System.currentTimeMillis();
 					computeD(this.imRef); 
 //					IJ.log("");
-//					t1 = System.currentTimeMillis();
+//					long t1 = System.currentTimeMillis();
 //					IJ.log("Computation time for all the curves : " + (t1-t0));		
 									
 // Plot results
@@ -480,19 +481,22 @@ public class ImageDecorrelationAnalysis{
 			int oy =  (int)(H*(1-r)/2);
 			int w = (int)(W*r);
 			int h = (int)(H*r);
-			
+			outerloop:
 			for (int xx = ox; xx < w+ox; xx ++)
 				for (int yy = oy; yy < h+oy; yy++) {
 					dist = (xx-W/2)*(xx-W/2) + (yy-H/2)*(yy-H/2);
 					dist = 4*dist/(W*W);
 					if (dist < r2) {
 						k = xx*this.imRef.getWidth() + yy;
+						if (k > W*H/2 + H/2)
+							break outerloop;
+						
 						d  += pixelsIrR[k]*pixelsIR[k] + pixelsIrI[k]*pixelsII[k];
 						c  += pixelsIR[k]*pixelsIR[k] + pixelsII[k]*pixelsII[k];
 					}
 				}
 					
-			d = d/(cr*Math.sqrt(c));
+			d = Math.sqrt(2)*d/(cr*Math.sqrt(c));
 		}
 		
 		return d;

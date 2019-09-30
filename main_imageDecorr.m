@@ -2,7 +2,7 @@
 addpath('funcs')
 image = double(loadData('test_image.tif'));
 
-pps = 15; % projected pixel size of 15nm
+pps = 5; % projected pixel size of 15nm
 % typical parameters for resolution estimate
 Nr = 50;
 Ng = 10;

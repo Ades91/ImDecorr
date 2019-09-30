@@ -81,11 +81,12 @@ for na = 1:Na
     mt = mt + na.*maskA;
     Ir = mask0.*maskA.*fftshift(fftn(fftshift(imr)));
     radAv(na,:) = getRadAvg(gather(log(abs(Ir)+1)));
-    
+
     % Fourier space normalization
     I = Ir./abs(Ir);
     I(isinf(I)) = 0; I(isnan(I)) = 0;
-
+    
+    Ir = Ir(1:(end-1)/2);
     c = sqrt(sum(sum(abs(Ir).^2)));
 
     count = 0;
@@ -96,7 +97,7 @@ for na = 1:Na
         mask  = R.^2 < rt.^2;
         
         temp = mask.*I;
-        temp((end+1)/2,(end+1)/2) = 0; % remove the mean
+        temp = temp(1:(end-1)/2); % remove the mean & optimize speed
     
         cc = gather(getCorrcoef(Ir,temp,c));
     
@@ -136,17 +137,17 @@ for refin = 1:2 % two step refinement
             imt = imr - imgaussfilt(imr,g(h));
             
             Ir = mask0.*maskA.*fftshift(fftn(fftshift(imt)));
-            Ir((end+1)/2,(end+1)/2) = 0; % remove the mean
-            
-            c = sqrt(sum(sum(abs(Ir).^2)));
             I = Ir./abs(Ir);
             I(isinf(I)) = 0; I(isnan(I)) = 0;
+            
+            Ir = Ir(1:(end-1)/2); % remove the mean
+            c = sqrt(sum(sum(abs(Ir).^2)));
             
             for k = size(r2,2):-1:1
                 rt = r2(na,k);
                 mask  = R.^2 < rt.^2;
                 temp = mask.*I;
-                temp((end+1)/2,(end+1)/2) = 0; % remove the mean
+                temp = temp(1:(end-1)/2); % remove the mean
                 cc = gather(getCorrcoef(Ir,temp,c));
                 
                 map = isnan(cc); cc(map) = 0;

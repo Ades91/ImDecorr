@@ -74,8 +74,9 @@ imr = real(ifftshift(ifftn(ifftshift(Ik))));
 % compute dcorr 0 and find its maxima
 imt = imr;
 Ir = mask0.*fftshift(fftn(fftshift(imt)));
-c = sqrt(sum(sum(abs(Ir).^2)));
 
+Ir = Ir(1:(end-1)/2); % remove the mean & speed up computation
+c = sqrt(sum(sum(abs(Ir).^2)));
 % t0 = tic;
 count = 0;
 r0 = linspace(r(1),r(end),Nr);
@@ -84,8 +85,8 @@ for k = length(r0):-1:1
     mask  = X.^2 + Y.^2 < rt^2;
         
     temp = mask.*I;
-    temp((end+1)/2,(end+1)/2) = 0; % remove the mean
-%         cc = sum(sum(abs(Ir.*temp)))/(c.*sqrt(sum(sum(abs(temp).^2)))); % compute the correlation coeficient
+    temp = temp(1:(end-1)/2); % remove the mean
+    
     cc = getCorrcoef(Ir,temp,c);
     if isnan(cc); cc = 0; end
         d0(k) = gather(cc); % gather if input image is gpuArray 
@@ -109,12 +110,13 @@ for refin = 1:2 % two step refinement
 for h = 1:length(g)
     imt = imr - imgaussfilt(imr,g(h));
     Ir = mask0.*fftshift(fftn(fftshift(imt)));
+    Ir = Ir(1:(end-1)/2);
     c = sqrt(sum(sum(abs(Ir).^2)));
     for k = length(r):-1:1
         rt = r(k);
         mask  = X.^2 + Y.^2 < rt^2;
         temp = mask.*I;
-        temp((end+1)/2,(end+1)/2) = 0; % remove the mean
+        temp = temp(1:(end-1)/2); % remove the mean
 %         cc = sum(sum(abs(Ir.*temp)))/(c.*sqrt(sum(sum(abs(temp).^2)))); % compute the correlation coeficient
         cc = getCorrcoef(Ir,temp,c);
         if isnan(cc); cc = 0; end
