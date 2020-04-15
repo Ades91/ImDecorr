@@ -50,131 +50,115 @@ if nargin < 2; r = linspace(0,1,50); end
 if length(r) < 30
     r = linspace(min(r),max(r),30);
 end
-if Ng < 10
-    Ng = 10;
+if Ng < 5
+    Ng = 5;
 end
-
+%%
 im = double(im);
 im = im(1:end-not(mod(size(im,1),2)),1:end-not(mod(size(im,2),2))); % odd number of pixels
 
-if figID
-    hwait = waitbar(0,'Computing dcorr');
-end
-
 [X,Y] = meshgrid(linspace(-1,1,size(im,2)),linspace(-1,1,size(im,1)));
+R = sqrt(X.^2 + Y.^2);
 Nr = length(r);
+if isa(im,'gpuArray')
+    r = gpuArray(r); 
+    R = gpuArray(R);
+end
+% In : Fourier normalized image
+In = fftshift(fftn(fftshift(im))); In = In./abs(In); In(isinf(In)) = 0; In(isnan(In)) = 0;
+mask0 = R.^2 < 1^2;
+In = mask0.*In; % restric all the analysis to the region r < 1
 
-I = fftshift(fftn(fftshift(im))); I = I./abs(I); I(isinf(I)) = 0; I(isnan(I)) = 0;
-mask0 = X.^2 + Y.^2 < 1^2;
-I = mask0.*I; % restric all the analysis to the region r == 1
+if figID
+    fprintf('Computing dcorr: ');
+end
+% Ik : Fourier transform of im
+Ik = mask0.*fftshift(fftn(fftshift(im)));
 
-Ik = mask0.*fftshift(fftn(fftshift((im-mean(im(:)))/std(im(:)))));
-imr = real(ifftshift(ifftn(ifftshift(Ik))));
+Ir = Ik(1:(end-1)/2); % remove the mean 
+c = sqrt(sum(sum(Ir.*conj(Ir))));
 
-% compute dcorr 0 and find its maxima
-imt = imr;
-Ir = mask0.*fftshift(fftn(fftshift(imt)));
-
-Ir = Ir(1:(end-1)/2); % remove the mean & speed up computation
-c = sqrt(sum(sum(abs(Ir).^2)));
-% t0 = tic;
-count = 0;
 r0 = linspace(r(1),r(end),Nr);
+tic
 for k = length(r0):-1:1
-    rt = r0(k);
-    mask  = X.^2 + Y.^2 < rt^2;
-        
-    temp = mask.*I;
-    temp = temp(1:(end-1)/2); % remove the mean
-    
+    Im = (R.^2 < r0(k)^2).*In; % masked Fourier image
+    temp = Im(1:(end-1)/2); % remove the mean
     cc = getCorrcoef(Ir,temp,c);
     if isnan(cc); cc = 0; end
-        d0(k) = gather(cc); % gather if input image is gpuArray 
-        count = count +1;
-        if figID
-            waitbar(0.1*count/Nr,hwait);
-        end
+    d0(k) = gather(cc); % gather if input image is gpuArray 
 end
-
+toc
 [ind,snr0] = getDcorrMax(d0);
 res0 = r(ind);
 
 gMax = 2/r0(ind);
 if isinf(gMax); gMax = max(size(im,1),size(im,2))/2;end
 
-% automatic search of best geometric mean
-g = exp(linspace(log(gMax),log(0.15),Ng));
-d = []; kc = []; SNR = []; gm = []; dc = 1;
+% search of highest frequency peak
+g = [size(im,1)/4, exp(linspace(log(gMax),log(0.15),Ng))];
+
+d = zeros(Nr,2*Ng); kc = res0; SNR = snr0; gm = res0;
 
 for refin = 1:2 % two step refinement
-for h = 1:length(g)
-    imt = imr - imgaussfilt(imr,g(h));
-    Ir = mask0.*fftshift(fftn(fftshift(imt)));
-    Ir = Ir(1:(end-1)/2);
-    c = sqrt(sum(sum(abs(Ir).^2)));
-    for k = length(r):-1:1
-        rt = r(k);
-        mask  = X.^2 + Y.^2 < rt^2;
-        temp = mask.*I;
-        temp = temp(1:(end-1)/2); % remove the mean
-%         cc = sum(sum(abs(Ir.*temp)))/(c.*sqrt(sum(sum(abs(temp).^2)))); % compute the correlation coeficient
-        cc = getCorrcoef(Ir,temp,c);
-        if isnan(cc); cc = 0; end
-        d(k,dc) = gather(cc); % gather if input image is gpuArray
-        count = count+1;
+    for h = 1:length(g)
+    	Ir = Ik.*(1 - exp(-2*g(h)*g(h)*R.^2)); % Fourier Gaussian filtering
+        c = sqrt(sum(sum(abs(Ir).^2)));
+        
+        for k = length(r):-1:1
+            Im = (R.^2 < r(k)^2).*In;
+            cc = getCorrcoef(Ir,Im,c);
+
+            if isnan(cc); cc = 0; end
+            d(k,h + Ng*(refin-1)) = gather(cc); % gather if input image is gpuArray
+            count = count+1;
+        end
+        
+        [ind,snr] = getDcorrMax(d(:,h + Ng*(refin-1)));
+        kc(end+1) = r(ind);
+        SNR(end+1) = snr;
+        gm(end+1) = sqrt(snr*r(ind));
         if figID
-            waitbar(0.1 + 0.9*count/(Nr*Ng*2),hwait);
+        	fprintf('-');
         end
     end
-    dc = dc + 1;
-    [ind,snr] = getDcorrMax(d(:,end));
-    kc(end+1) = r(ind);
-    SNR(end+1) = snr;
-    gm(end+1) = sqrt(snr*r(ind)); % 
-end
 
 % refining the high-pass threshold and the radius sampling
-if refin == 1
-    
-    % remove unphysical peaks from refinement anaysis
-    kc(SNR < 0.05) = 0;
-    SNR(SNR < 0.05) = 0;
+    if refin == 1
 
-    gm(SNR == 0) = 0;
-    gm(kc == 0) = 0;
-    
     % high-pass filtering refinement
-    [~,indgm] = max(gm);
-    [~,indmax] = max(kc);
-    ind1 = min(indgm,indmax);
-    ind2 = max(indgm,indmax);
-    if ind1 == 1
-        ind1 = 1;
-        ind2 = 1;
-    elseif ind2 == length(g)
-        ind2 = length(g)-1;
+        [~,indgm] = max(gm);
+        [~,indmax] = max(kc);
+        ind1 = min(indgm,indmax);
+        ind2 = max(indgm,indmax);
+        if ind1 == 1
+            ind1 = 1;
+            ind2 = 1;
+        elseif ind2 == length(g)
+            ind2 = length(g)-1;
+        end
+        g1 = g(ind1); g2 = g(ind2+1);
+        g = exp(linspace(log(g1),log(g2),Ng+2));
+        g = g(2:end-1);
+        
+        % radius sampling refinement
+        [~,ind] = max(kc);
+        r1 = kc(ind)-0.05; r2 = kc(ind)+0.3;
+        if r1 < 0 ; r1 = 0; end
+        if r2 > 1; r2 = 1; end
+        r = linspace(r1,min(r2,r(end)),Nr);
+        r2 = r;
     end
-    g1 = g(ind1); g2 = g(ind2+1);
-    g = exp(linspace(log(g1),log(g2),Ng));
-    
-    % radius sampling refinement
-    [~,ind] = max(gm);
-    r1 = kc(ind)-0.05; r2 = kc(ind)+0.3;
-    if r1 < 0 ; r1 = 0; end
-    if r2 > 1; r2 = 1; end
-    r = linspace(r1,min(r2,r(end)),Nr);
-    r2 = r;
 end
+if figID
+    fprintf(' -- Computation done -- ');
 end
-% release GPU memory
-
 radAv = getRadAvg(gather(log(abs(Ik)+1)));
 
 % add d0 results to the analysis (usefull for high noise images)
 kc(end+1) = res0;
 SNR(end+1) = snr0;
 
-% need at least 0.05 of SNR to be even considered
+% % need at least 0.05 of SNR to be even considered
 kc(SNR < 0.05) = 0;
 SNR(SNR < 0.05) = 0;
 
@@ -199,11 +183,6 @@ else
     A0 = 0;
 end
 
-if figID
-    waitbar(1,hwait);
-    delete(hwait)
-end
-
 % results display if figID specified
 if figID
     lnwd = 1.5;
@@ -214,7 +193,7 @@ if figID
     radAv(end) = radAv(end-1);
     plot(linspace(0,1,length(radAv)),linmap(radAv,0,1),'linewidth',lnwd,'color',[1 0 1])
     for n = 1:Ng
-        plot(r2,d(:,n+Ng:end),'color',[0 0 (n-1)/Ng])
+        plot(r2,d(:,n+Ng),'color',[0 0 (n-1)/Ng])
     end
     plot(r0,d0,'linewidth',lnwd,'color','g')
     plot([kcMax kcMax],[0 1],'k')

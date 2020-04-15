@@ -228,7 +228,7 @@ end
 if figID
     x = linspace(-1,1,size(im,2)); y = linspace(-1,1,size(im,1));
     figure(figID)
-    imagesc(x,y,log(abs(fftshift(fftn(fftshift(apodImRect(im,20)))))+1))
+    imagesc(x,y,log(abs(fftshift(fftn(fftshift((im)))))+1))
     hold on
     th = linspace(0,2*pi,2*Na+1)';
     
