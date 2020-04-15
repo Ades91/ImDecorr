@@ -54,7 +54,7 @@ if Ng < 5
     Ng = 5;
 end
 %%
-im = double(im);
+im = single(im);
 im = im(1:end-not(mod(size(im,1),2)),1:end-not(mod(size(im,2),2))); % odd number of pixels
 
 [X,Y] = meshgrid(linspace(-1,1,size(im,2)),linspace(-1,1,size(im,1)));
@@ -75,19 +75,16 @@ end
 % Ik : Fourier transform of im
 Ik = mask0.*fftshift(fftn(fftshift(im)));
 
-Ir = Ik(1:(end-1)/2); % remove the mean 
-c = sqrt(sum(sum(Ir.*conj(Ir))));
+c = sqrt(sum(sum(Ik.*conj(Ik))));
 
 r0 = linspace(r(1),r(end),Nr);
-tic
+
 for k = length(r0):-1:1
-    Im = (R.^2 < r0(k)^2).*In; % masked Fourier image
-    temp = Im(1:(end-1)/2); % remove the mean
-    cc = getCorrcoef(Ir,temp,c);
+    cc = getCorrcoef(Ik,(R.^2 < r0(k)^2).*In,c);
     if isnan(cc); cc = 0; end
     d0(k) = gather(cc); % gather if input image is gpuArray 
 end
-toc
+
 [ind,snr0] = getDcorrMax(d0);
 res0 = r(ind);
 
@@ -100,18 +97,26 @@ g = [size(im,1)/4, exp(linspace(log(gMax),log(0.15),Ng))];
 d = zeros(Nr,2*Ng); kc = res0; SNR = snr0; gm = res0;
 
 for refin = 1:2 % two step refinement
+
     for h = 1:length(g)
-    	Ir = Ik.*(1 - exp(-2*g(h)*g(h)*R.^2)); % Fourier Gaussian filtering
+        Ir = Ik.*(1 - exp(-2*g(h)*g(h)*R.^2)); % Fourier Gaussian filtering
         c = sqrt(sum(sum(abs(Ir).^2)));
-
+        
         for k = length(r):-1:1
-            Im = (R.^2 < r(k)^2).*In;
-            cc = getCorrcoef(Ir,Im,c);
 
-            if isnan(cc); cc = 0; end
-            d(k,h + Ng*(refin-1)) = gather(cc); % gather if input image is gpuArray
+            if isa(im,'gpuArray')
+                cc = getCorrcoef(Ir,In.*(R.^2 < r(k)^2),c);
+                if isnan(cc); cc = 0; end
+                d(k,h + Ng*(refin-1)) = gather(cc);
+            else
+                mask = (R.^2 < r(k)^2);
+                cc = getCorrcoef(Ir(mask),In(mask),c);
+                if isnan(cc); cc = 0; end
+                d(k,h + Ng*(refin-1)) = cc;
+            end
+
         end
-
+        
         [ind,snr] = getDcorrMax(d(:,h + Ng*(refin-1)));
         kc(end+1) = r(ind);
         SNR(end+1) = snr;
