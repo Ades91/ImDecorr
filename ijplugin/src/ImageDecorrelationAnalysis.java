@@ -238,15 +238,25 @@ public class ImageDecorrelationAnalysis{
 				float[] pixelsII = (float[]) I[1].getPixels();
 				double cr = getCorrCoefNorm(pixelsIrR,pixelsIrI,mask0);
 				
+				double[] coef = getCorrCoefRing(pixelsIrR,pixelsIrI,pixelsIR,pixelsII,crmin, crmax, Nr);
+					
 				for (int i = 0; i <this.Nr; i++) {
-					double r = crmin + (crmax-crmin)*(double)i/(double)(this.Nr-1);
-//					mask = getMask(Ir[0].getWidth(),r*r);
-
-					this.d[i][count] = getCorrCoef(pixelsIrR,pixelsIrI,pixelsIR,pixelsII,r,cr);
+					double d = 0;
+					double c = 0;
+					for (int n = 0; n <= i;n ++) {
+						d += coef[n];
+						c += coef[n+Nr];
+					}
+					this.d[i][count] = Math.sqrt(2)*d/(cr*Math.sqrt(c));
+					
+//					this.d[i][count] = getCorrCoef(pixelsIrR,pixelsIrI,pixelsIR,pixelsII,r,cr);
 //					IJ.showProgress(0.1 + 0.9*(((double)count2)/((this.Nr-1)*2*(this.Ng-1))));
 
 //					count2++;
 				}
+				if (Double.isNaN(this.d[0][count]))	
+					this.d[0][count] = 0;
+				
 				count++;
 				
 			}
@@ -393,16 +403,26 @@ public class ImageDecorrelationAnalysis{
 		// Precompute the normalization correlation coeficient for Ir
 		double cr = getCorrCoefNorm(pixelsIrR,pixelsIrI,mask0);
 		
+		double[] coef = getCorrCoefRing(pixelsIrR,pixelsIrI,pixelsIR,pixelsII,rmin, rmax, Nr);
+			
+		
 		for (int k = 0; k <this.Nr; k++) {
 //			t1 = System.currentTimeMillis();
 			// d0 is always computed on the full frequency range
-			double r = 0 + (1-0)*(double)k/(double)(this.Nr-1);
-//			mask = getMask(Ir[0].getWidth(),r*r);
+			double d = 0;
+			double c = 0;
+			for (int n = 0; n <= k;n ++) {
+				d += coef[n];
+				c += coef[n+Nr];
+			}
+			this.d0[k] = Math.sqrt(2)*d/(cr*Math.sqrt(c));
+			//this.d0[k] = getCorrCoef(pixelsIrR,pixelsIrI,pixelsIR,pixelsII,r,cr);
 
-			this.d0[k] = getCorrCoef(pixelsIrR,pixelsIrI,pixelsIR,pixelsII,r,cr);
 //			IJ.log("Computation of a single cc time computation time : " + (System.currentTimeMillis()-t1));
 			IJ.showProgress(0.1*(k/(this.Nr-1)));
 		}
+		if (Double.isNaN(this.d0[0]))	
+			this.d0[0] = 0;
 	}
 	
 	private double[] getDcorrMax(double[] d, double r1, double r2) {
@@ -466,43 +486,78 @@ public class ImageDecorrelationAnalysis{
 		return out;
 	}
 	
-	private double getCorrCoef(float[] pixelsIrR, float[] pixelsIrI, float[] pixelsIR, float[] pixelsII, double r, double cr) {
+//	private double getCorrCoef(float[] pixelsIrR, float[] pixelsIrI, float[] pixelsIR, float[] pixelsII, double r, double cr) {
+//		
+//		double d = 0;
+//		double c = 0;
+//		double r2 = r*r;
+//		double dist = 0;
+//		int W = this.imRef.getWidth();
+//		int H = this.imRef.getHeight();
+//		int k = 0;
+//		
+//		if (r != 0){
+//			int ox =  (int)(W*(1-r)/2);
+//			int oy =  (int)(H*(1-r)/2);
+//			int w = (int)(W*r);
+//			int h = (int)(H*r);
+//			outerloop:
+//			for (int xx = ox; xx < w+ox; xx ++)
+//				for (int yy = oy; yy < h+oy; yy++) {
+//					dist = (xx-W/2)*(xx-W/2) + (yy-H/2)*(yy-H/2);
+//					dist = 4*dist/(W*W);
+//					if (dist < r2) {
+//						k = xx*this.imRef.getWidth() + yy;
+//						if (k > W*H/2 + H/2)
+//							break outerloop;
+//						
+//						d  += pixelsIrR[k]*pixelsIR[k] + pixelsIrI[k]*pixelsII[k];
+//						c  += pixelsIR[k]*pixelsIR[k] + pixelsII[k]*pixelsII[k];
+//					}
+//				}
+//					
+//			d = Math.sqrt(2)*d/(cr*Math.sqrt(c));
+//		}
+//		
+//		return d;
+//	}
+	
+	private double[] getCorrCoefRing(float[] pixelsIrR, float[] pixelsIrI, float[] pixelsIR, float[] pixelsII, double rmin, double rmax, int Nr) {
 		
-		double d = 0;
-		double c = 0;
-		double r2 = r*r;
+		double[] out = new double[2*(int)Nr]; // first half stores d, second half stores c
+		int d = 0;
 		double dist = 0;
 		int W = this.imRef.getWidth();
 		int H = this.imRef.getHeight();
 		int k = 0;
+
+		int ox =  (int)(W*(1-rmax)/2);
+		int oy =  (int)(H*(1-rmax)/2);
+		int w = (int)(W*rmax);
+		int h = (int)(H*rmax);
 		
-		if (r != 0){
-			int ox =  (int)(W*(1-r)/2);
-			int oy =  (int)(H*(1-r)/2);
-			int w = (int)(W*r);
-			int h = (int)(H*r);
-			outerloop:
-			for (int xx = ox; xx < w+ox; xx ++)
-				for (int yy = oy; yy < h+oy; yy++) {
-					dist = (xx-W/2)*(xx-W/2) + (yy-H/2)*(yy-H/2);
-					dist = 4*dist/(W*W);
-					if (dist < r2) {
-						k = xx*this.imRef.getWidth() + yy;
-						if (k > W*H/2 + H/2)
-							break outerloop;
-						
-						d  += pixelsIrR[k]*pixelsIR[k] + pixelsIrI[k]*pixelsII[k];
-						c  += pixelsIR[k]*pixelsIR[k] + pixelsII[k]*pixelsII[k];
+		outerloop:
+		for (int xx = ox; xx < w; xx ++)
+			for (int yy = oy; yy < h; yy++) {
+				dist = (xx-W/2)*(xx-W/2) + (yy-H/2)*(yy-H/2);
+				dist = Math.sqrt(4*dist/(W*W));
+				k = xx*this.imRef.getHeight() + yy;
+				if (k > W*H/2 + H/2)
+					break outerloop;
+				else {
+					if (dist > 0 && dist <= rmax ) {
+						dist = utils.linmap(utils.clamp(dist,rmin, rmax), rmin, rmax, 0, Nr-1);
+						d = (int)Math.round(dist);
+						// d and c are the indices of each Fourier rings
+						out[d]  += pixelsIrR[k]*pixelsIR[k] + pixelsIrI[k]*pixelsII[k]; // numerator
+						out[d+Nr]  += pixelsIR[k]*pixelsIR[k] + pixelsII[k]*pixelsII[k]; // denominator
 					}
 				}
-					
-			d = Math.sqrt(2)*d/(cr*Math.sqrt(c));
 		}
-		
-		return d;
+
+		return out;
 	}
-	
-	
+		       	
 	boolean[] getMask(int w,double r2) {
 		
 		r2 = r2*w*w/4;

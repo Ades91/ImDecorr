@@ -159,4 +159,23 @@ public class utils {
 		return ret;
 	}
 	
+	// map the input value val, which belongs to [valmin,valmax] to the range [mapmin,mapmax]
+	static public double linmap(double val, double valmin, double valmax, double mapmin, double mapmax) {
+		double out = 0;
+		// range is now [0,1]
+		out = (val-valmin)/(valmax-valmin);
+		// range is now [mapmin,mapmax]
+		out = out*(mapmax-mapmin) + mapmin;
+		return out;
+	}
+	
+	static public double clamp(double val, double valmin, double valmax) {
+		if (val < valmin)
+			return valmin;
+		else if (val > valmax)
+			return valmax;
+		else
+			return val;
+	}
+	
 }
