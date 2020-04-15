@@ -103,16 +103,15 @@ for refin = 1:2 % two step refinement
     for h = 1:length(g)
     	Ir = Ik.*(1 - exp(-2*g(h)*g(h)*R.^2)); % Fourier Gaussian filtering
         c = sqrt(sum(sum(abs(Ir).^2)));
-        
+
         for k = length(r):-1:1
             Im = (R.^2 < r(k)^2).*In;
             cc = getCorrcoef(Ir,Im,c);
 
             if isnan(cc); cc = 0; end
             d(k,h + Ng*(refin-1)) = gather(cc); % gather if input image is gpuArray
-            count = count+1;
         end
-        
+
         [ind,snr] = getDcorrMax(d(:,h + Ng*(refin-1)));
         kc(end+1) = r(ind);
         SNR(end+1) = snr;
