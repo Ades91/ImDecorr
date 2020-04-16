@@ -86,7 +86,7 @@ for k = length(r0):-1:1
 end
 
 [ind,snr0] = getDcorrMax(d0);
-res0 = r(ind);
+res0 = gather(r(ind));
 
 gMax = 2/r0(ind);
 if isinf(gMax); gMax = max(size(im,1),size(im,2))/2;end
@@ -118,9 +118,9 @@ for refin = 1:2 % two step refinement
         end
         
         [ind,snr] = getDcorrMax(d(:,h + Ng*(refin-1)));
-        kc(end+1) = r(ind);
+        kc(end+1) = gather(r(ind));
         SNR(end+1) = snr;
-        gm(end+1) = sqrt(snr*r(ind));
+        gm(end+1) = sqrt(snr*kc(end));
         if figID
         	fprintf('-');
         end
@@ -154,12 +154,12 @@ for refin = 1:2 % two step refinement
     end
 end
 if figID
-    fprintf(' -- Computation done -- ');
+    fprintf(' -- Computation done -- \n');
 end
 radAv = getRadAvg(gather(log(abs(Ik)+1)));
 
 % add d0 results to the analysis (usefull for high noise images)
-kc(end+1) = res0;
+kc(end+1) = gather(res0);
 SNR(end+1) = snr0;
 
 % % need at least 0.05 of SNR to be even considered
