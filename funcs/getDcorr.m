@@ -8,6 +8,7 @@
 %  r           	Fourier space sampling of the analysis (default: r = linspace(0,1,50)
 %  Ng			Number of high-pass filtering (default: Ng = 10)
 %  figID		If figID > 1, curves will be plotted in figure(figID)
+%               if figID == 'fast', enable fast resolution estimate mode
 %
 % Outputs:
 %  kcMax        Estimated cut-off frequency of the image in normalized frequency
@@ -43,6 +44,12 @@
 function [kcMax,A0,kcGM,d0,d] = getDcorr(im,r,Ng,figID)
 
 if nargin < 4; figID = 0; end
+if ischar(figID)
+    figID = 0;
+    fastMode = 1;
+else
+    fastMode = 0;
+end
 if nargin < 3; Ng = 10;  end
 if nargin < 2; r = linspace(0,1,50); end
 
@@ -83,26 +90,40 @@ for k = length(r0):-1:1
     cc = getCorrcoef(Ik,(R.^2 < r0(k)^2).*In,c);
     if isnan(cc); cc = 0; end
     d0(k) = gather(cc); % gather if input image is gpuArray 
+    if fastMode == 1
+        [ind0,snr0] = getDcorrLocalMax(d0(k:end));
+        ind0 = ind0 + k-1;
+        if ind0 > k % found a local maxima, skip the calculation
+            break;
+        end
+    end
 end
+if fastMode == 0
+    ind0 = getDcorrLocalMax(d0(k:end));
+    snr0 = d0(ind0);
+end
+res0 = gather(r(ind0));
 
-[ind,snr0] = getDcorrMax(d0);
-res0 = gather(r(ind));
-
-gMax = 2/r0(ind);
+gMax = 2/r0(ind0);
 if isinf(gMax); gMax = max(size(im,1),size(im,2))/2;end
 
 % search of highest frequency peak
 g = [size(im,1)/4, exp(linspace(log(gMax),log(0.15),Ng))];
-
 d = zeros(Nr,2*Ng); kc = res0; SNR = snr0; gm = res0;
-
+if fastMode == 0
+    ind0 = 1;
+else
+    if ind0 > 1
+        ind0 = ind0 -1;
+    end
+end
 for refin = 1:2 % two step refinement
 
     for h = 1:length(g)
         Ir = Ik.*(1 - exp(-2*g(h)*g(h)*R.^2)); % Fourier Gaussian filtering
         c = sqrt(sum(sum(abs(Ir).^2)));
         
-        for k = length(r):-1:1
+        for k = length(r):-1:ind0
 
             if isa(im,'gpuArray')
                 cc = getCorrcoef(Ir,In.*(R.^2 < r(k)^2),c);
@@ -114,13 +135,23 @@ for refin = 1:2 % two step refinement
                 if isnan(cc); cc = 0; end
                 d(k,h + Ng*(refin-1)) = cc;
             end
+            if fastMode
+                [ind,snr] = getDcorrLocalMax(d(k:end,h + Ng*(refin-1)));
+                ind = ind +k-1;
+                if ind > k % found a local maxima, skip the calculation
+                    break;
+                end
+            end
 
         end
-        
-        [ind,snr] = getDcorrMax(d(:,h + Ng*(refin-1)));
-        kc(end+1) = gather(r(ind));
-        SNR(end+1) = snr;
-        gm(end+1) = sqrt(snr*kc(end));
+        if fastMode == 0
+            ind = getDcorrLocalMax(d(k:end,h + Ng*(refin-1)));
+            snr = d(ind,h + Ng*(refin-1));
+            ind = ind +k-1;
+        end
+        kc(h + Ng*(refin-1)+1) = gather(r(ind));
+        SNR(h + Ng*(refin-1)+1) = snr;
+        gm(h + Ng*(refin-1)+1) = sqrt(snr*kc(end));
         if figID
         	fprintf('-');
         end
@@ -130,33 +161,37 @@ for refin = 1:2 % two step refinement
     if refin == 1
 
     % high-pass filtering refinement
-        [~,indgm] = max(gm);
-        [~,indmax] = max(kc);
-        ind1 = min(indgm,indmax);
-        ind2 = max(indgm,indmax);
-        if ind1 == 1
+        indmax = find(kc == max(kc));
+        ind1 = indmax(end);
+        if ind1 == 1 % peak only without highpass 
             ind1 = 1;
-            ind2 = 1;
-        elseif ind2 == length(g)
-            ind2 = length(g)-1;
+            ind2 = 2;
+            g1 = size(im,1);
+            g2 = g(1);
+        elseif ind1 >= numel(g)
+            ind2 = ind1-1;
+            ind1 = ind1-2;
+            g1 = g(ind1); g2 = g(ind2);
+        else
+            ind2 = ind1+1;
+            g1 = g(ind1); g2 = g(ind2);
         end
-        g1 = g(ind1); g2 = g(ind2+1);
         g = exp(linspace(log(g1),log(g2),Ng+2));
         g = g(2:end-1);
         
         % radius sampling refinement
-        [~,ind] = max(kc);
-        r1 = kc(ind)-0.05; r2 = kc(ind)+0.3;
+
+        r1 = kc(indmax(end))-(r(2)-r(1)); r2 = kc(indmax(end))+0.3;
         if r1 < 0 ; r1 = 0; end
         if r2 > 1; r2 = 1; end
         r = linspace(r1,min(r2,r(end)),Nr);
+        ind0 = 1;
         r2 = r;
     end
 end
 if figID
     fprintf(' -- Computation done -- \n');
 end
-radAv = getRadAvg(gather(log(abs(Ik)+1)));
 
 % add d0 results to the analysis (usefull for high noise images)
 kc(end+1) = gather(res0);
@@ -188,7 +223,8 @@ else
 end
 
 % results display if figID specified
-if figID
+if figID 
+    radAv = getRadAvg(log(abs(gather(Ik))+1));
     lnwd = 1.5;
     figure(figID);
     plot(r0,d(:,1:Ng),'color',[0.2 0.2 0.2 0.5]);

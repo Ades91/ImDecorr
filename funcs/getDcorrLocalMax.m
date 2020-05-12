@@ -34,28 +34,20 @@
 % 	You should have received a copy of the GNU General Public License
 %  	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-function [ind,A] = getDcorrMax(d)
+function [ind,A] = getDcorrLocalMax(d)
 
-[A,ind] = max(d);
-t = d;
-% arbitrary peak significance parameter imposed by numerical noise
-% this becomes relevant especially when working with post-processed data
-dt = 0.001;
-
-while ind == length(t)
-    t(end) = [];
-    if isempty(t)
-        A = 0;
+Nr = numel(d);
+if Nr < 3
+    ind = 1;
+    A = d(1);
+else
+	lmax = (d(2:Nr-1) > d(1:Nr-2)) & (d(2:Nr-1) > d(3:Nr));
+    ind = find(lmax==1);
+    if isempty(ind)
         ind = 1;
+        A = d(1);
     else
-        [A,ind] = max(t);
-        % check if the peak is significantly larger than the former minimum
-        if t(ind) - min(d(ind:end)) > dt 
-            break
-        else
-            t(ind) = min(d(ind:end));
-            ind = length(t);
-        end
+        ind = ind(end)+1;
+        A = d(ind);
     end
-     
 end
