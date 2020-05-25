@@ -44,3 +44,4 @@ if nargin < 3
 end
 
 cc = sum(sum(real(I1.*conj(I2))))./((c1*c2));
+cc = floor(1000*cc)/1000;

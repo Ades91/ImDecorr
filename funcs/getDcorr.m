@@ -173,11 +173,11 @@ for refin = 1:2 % two step refinement
             ind1 = ind1-2;
             g1 = g(ind1); g2 = g(ind2);
         else
-            ind2 = ind1+1;
+            ind2 = ind1;
+            ind1 = ind1-1;
             g1 = g(ind1); g2 = g(ind2);
         end
-        g = exp(linspace(log(g1),log(g2),Ng+2));
-        g = g(2:end-1);
+        g = exp(linspace(log(g1),log(g2),Ng));
         
         % radius sampling refinement
 
