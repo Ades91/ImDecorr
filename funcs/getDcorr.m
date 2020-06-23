@@ -20,11 +20,11 @@
 % ---------------------------------------
 %
 % A detailled description of the method can be found in : 
-% "Descloux, A., K. S. Grußmayer, and A. Radenovic. "Parameter-free image 
+% "Descloux, A., K. S. Gru??mayer, and A. Radenovic. "Parameter-free image 
 % resolution estimation based on decorrelation analysis."
 % Nature methods (2019): 1-7."
 % 
-%   Copyright © 2018 Adrien Descloux - adrien.descloux@epfl.ch,
+%   Copyright ?? 2018 Adrien Descloux - adrien.descloux@epfl.ch,
 %   Ecole Polytechnique Federale de Lausanne, LBEN,
 %   BM 5.134, Station 17, 1015 Lausanne, Switzerland.
 %
@@ -41,7 +41,7 @@
 % 	You should have received a copy of the GNU General Public License
 %  	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-function [kcMax,A0,kcGM,d0,d] = getDcorr(im,r,Ng,figID)
+function [kcMax,A0,d0,d] = getDcorr(im,r,Ng,figID)
 
 if nargin < 4; figID = 0; end
 if ischar(figID)
@@ -102,14 +102,14 @@ if fastMode == 0
     ind0 = getDcorrLocalMax(d0(k:end));
     snr0 = d0(ind0);
 end
-res0 = gather(r(ind0));
+k0 = gather(r(ind0));
 
 gMax = 2/r0(ind0);
 if isinf(gMax); gMax = max(size(im,1),size(im,2))/2;end
 
 % search of highest frequency peak
 g = [size(im,1)/4, exp(linspace(log(gMax),log(0.15),Ng))];
-d = zeros(Nr,2*Ng); kc = res0; SNR = snr0; gm = res0;
+d = zeros(Nr,2*Ng); kc = k0; SNR = snr0;
 if fastMode == 0
     ind0 = 1;
 else
@@ -151,7 +151,6 @@ for refin = 1:2 % two step refinement
         end
         kc(h + Ng*(refin-1)+1) = gather(r(ind));
         SNR(h + Ng*(refin-1)+1) = snr;
-        gm(h + Ng*(refin-1)+1) = sqrt(snr*kc(end));
         if figID
         	fprintf('-');
         end
@@ -181,7 +180,7 @@ for refin = 1:2 % two step refinement
         
         % radius sampling refinement
 
-        r1 = kc(indmax(end))-(r(2)-r(1)); r2 = kc(indmax(end))+0.3;
+        r1 = kc(indmax(end))-(r(2)-r(1)); r2 = kc(indmax(end))+0.4;
         if r1 < 0 ; r1 = 0; end
         if r2 > 1; r2 = 1; end
         r = linspace(r1,min(r2,r(end)),Nr);
@@ -194,7 +193,7 @@ if figID
 end
 
 % add d0 results to the analysis (usefull for high noise images)
-kc(end+1) = gather(res0);
+kc(end+1) = gather(k0);
 SNR(end+1) = snr0;
 
 % % need at least 0.05 of SNR to be even considered
@@ -208,12 +207,6 @@ if ~isempty(kc)
     % highest resolution found 
     [kcMax,ind] = max(kc);
     AMax = SNR(ind);
-
-    % compute the geometric mean to determine the best res/SNR curve
-    gm = sqrt(kc.*SNR);
-    [~,ind] = max(gm);
-
-    kcGM = kc(ind);
     A0 = snr0; % average image contrast has to be estimated from original image
 else
     kcMax = r(2);

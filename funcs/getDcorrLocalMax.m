@@ -17,7 +17,7 @@
 % resolution estimation based on decorrelation analysis."
 % Nature methods (2019): 1-7."
 % 
-%   Copyright © 2018 Adrien Descloux - adrien.descloux@epfl.ch, 
+%   Copyright ?? 2018 Adrien Descloux - adrien.descloux@epfl.ch, 
 %   Ecole Polytechnique Federale de Lausanne, LBEN,
 %   BM 5.134, Station 17, 1015 Lausanne, Switzerland.
 %
@@ -41,13 +41,18 @@ if Nr < 3
     ind = 1;
     A = d(1);
 else
-	lmax = (d(2:Nr-1) > d(1:Nr-2)) & (d(2:Nr-1) > d(3:Nr));
-    ind = find(lmax==1);
+    % find maxima of d
+    [A,ind] = max(d);
+    while ind == numel(d) && A - min(d(ind:end)) < 0.01 && numel(d) > 1
+        d(end) = [];
+        [A,ind] = max(d);
+    end
     if isempty(ind)
         ind = 1;
         A = d(1);
     else
-        ind = ind(end)+1;
         A = d(ind);
+        ind = ind(end);
+        
     end
 end
