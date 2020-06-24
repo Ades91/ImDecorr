@@ -43,9 +43,18 @@ if Nr < 3
 else
     % find maxima of d
     [A,ind] = max(d);
-    while ind == numel(d) && A - min(d(ind:end)) < 0.01 && numel(d) > 1
-        d(end) = [];
-        [A,ind] = max(d);
+    while numel(d) > 1
+         if ind == numel(d) 
+            d(end) = [];
+            [A,ind] = max(d);
+         elseif ind == 1
+             break;
+         elseif (A - min(d(ind:end))) > 0.01
+             break;
+         else
+             d(end) = [];
+            [A,ind] = max(d);
+         end     
     end
     if isempty(ind)
         ind = 1;
