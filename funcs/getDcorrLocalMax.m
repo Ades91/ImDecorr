@@ -37,7 +37,7 @@
 function [ind,A] = getDcorrLocalMax(d)
 
 Nr = numel(d);
-if Nr < 3
+if Nr < 2
     ind = 1;
     A = d(1);
 else
@@ -49,7 +49,7 @@ else
             [A,ind] = max(d);
          elseif ind == 1
              break;
-         elseif (A - min(d(ind:end))) > 0.01
+         elseif (A - min(d(ind:end))) >= 0.001
              break;
          else
              d(end) = [];
