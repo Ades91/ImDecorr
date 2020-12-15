@@ -49,7 +49,7 @@ else
             [A,ind] = max(d);
          elseif ind == 1
              break;
-         elseif (A - min(d(ind:end))) >= 0.001
+         elseif (A - min(d(ind:end))) >= 0.0005
              break;
          else
              d(end) = [];

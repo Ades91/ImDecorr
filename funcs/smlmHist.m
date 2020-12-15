@@ -11,7 +11,7 @@
 %                   FOV should be in same units as data and pps
 %
 % Outputs:
-%  im        	Rescaled value
+%  im        	Bilinear histogram rendered image
 %
 % ---------------------------------------
 %   Adrien Descloux - adrien.descloux@epfl.ch, 
@@ -39,9 +39,9 @@ Ny = ceil(FOVy/pps);
 pps = FOVx/Nx;
 FOVy = pps*Ny;
 
-% map data in image space
-data(:,1) = linmap(data(:,1),0,FOVx,1,Nx);
-data(:,2) = linmap(data(:,2),0,FOVy,1,Ny);
+% map data in Matlab image space
+data(:,1) = linmap(data(:,1),0,FOVx,0.5,Nx+0.5);
+data(:,2) = linmap(data(:,2),0,FOVy,0.5,Ny+0.5);
 % filter data out of the range [0, FOV]
 x0 = floor(data(:,1)); y0 = floor(data(:,2));
 map = x0 < Nx & x0 > 0 & y0 < Ny & y0 > 0;
