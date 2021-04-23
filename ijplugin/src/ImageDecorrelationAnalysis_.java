@@ -332,13 +332,16 @@ public class ImageDecorrelationAnalysis_ implements PlugIn {
 		 * Version 1.1.6:	Added reference to publication
 		 * Version 1.1.7:	Average speed improvement (~1s over 4s for 1000x1000 image) by optimization
 		 * 					of the cross-correlation calculation
+		 * Version 1.1.8:	Fixed bug where the final local maxima was selected from the refined curves only
+		 * 					instead of all the curves
+		 * 					Fixed incorrect scaling of refined curves
 		 */
 		
 
 		 String aboutText = new String("<html><h1> About Image Decorrelation Analysis</h1>" + 
 		 						"Author : Adrien Descloux <br>" +
 		 						"LBEN STI EPFL Switzerland <br>"  +
-		 						"Version 1.1.7 <br>"+
+		 						"Version 1.1.8 <br>"+
 		 						"<br />" + 
 		 						"A detailled description of the method can be found in : <br />" + 
 		 						"Descloux, A., K. S. Grußmayer, and A. Radenovic. Parameter-free image  <br>" + 

@@ -223,6 +223,7 @@ public class ImageDecorrelationAnalysis{
 				imBlur = imRef.convertToFloatProcessor();
 
 				double sig =  Math.exp(Math.log(gMin) + (Math.log(gMax)-Math.log(gMin))*((double)k/((double)this.Ng-1)));
+				
 				gb.blurGaussian(imBlur,sig,sig,0.01);
 
 				imBlur = utils.substract(imRef,imBlur);
@@ -238,14 +239,14 @@ public class ImageDecorrelationAnalysis{
 				float[] pixelsII = (float[]) I[1].getPixels();
 				double cr = getCorrCoefNorm(pixelsIrR,pixelsIrI,mask0);
 				
-				double[] coef = getCorrCoefRing(pixelsIrR,pixelsIrI,pixelsIR,pixelsII,crmin, crmax, Nr);
+				double[] coef = getCorrCoefRing(pixelsIrR,pixelsIrI,pixelsIR,pixelsII,crmin, crmax, this.Nr);
 					
 				for (int i = 0; i <this.Nr; i++) {
 					double d = 0;
 					double c = 0;
-					for (int n = 0; n <= i;n ++) {
+					for (int n = 0; n <= i;n++) {
 						d += coef[n];
-						c += coef[n+Nr];
+						c += coef[n+this.Nr];
 					}
 					this.d[i][count] = Math.sqrt(2)*d/(cr*Math.sqrt(c));
 					
@@ -300,7 +301,7 @@ public class ImageDecorrelationAnalysis{
 				crmax = Math.max(resultsGM[0],resultsMax[0])+0.3;
 				if(crmax > this.rmax)
 					crmax = this.rmax;
-				
+				crmax = 0.5;
 				//	Store refined data for final results and plotting
 				this.rmin2 = crmin;
 				this.rmax2 = crmax;
@@ -337,11 +338,11 @@ public class ImageDecorrelationAnalysis{
 				}
 				
 				// process peaks positions with geometric mean
-				double[] resultsGM = getBestScore(kc,A);
+				double[] resultsGM = getBestScore(this.kc,this.Ag);
 				this.kcGM = resultsGM[0];
 				this.AGM = resultsGM[1];
 				// process peaks for maximum frequency
-				double[] resultsMax = getMaxScore(kc,A);
+				double[] resultsMax = getMaxScore(this.kc,this.Ag);
 				this.kcMax = resultsMax[0];
 				this.AMax = resultsMax[1];
 			}
@@ -453,7 +454,7 @@ public class ImageDecorrelationAnalysis{
 				}
 			}
 		}
-				
+		
 		out[0] = r1 + (r2-r1)*out[0]/(this.Nr-1); // convert max position into normalized frequency
 		return out;
 	}
@@ -537,18 +538,20 @@ public class ImageDecorrelationAnalysis{
 		int h = (int)(H*rmax);
 		
 		outerloop:
-		for (int xx = ox; xx < w; xx ++)
-			for (int yy = oy; yy < h; yy++) {
+		for (int xx = ox; xx < ox+w; xx++)
+			for (int yy = oy; yy < oy+h; yy++) {
 				dist = (xx-W/2)*(xx-W/2) + (yy-H/2)*(yy-H/2);
 				dist = Math.sqrt(4*dist/(W*W));
 				k = xx*this.imRef.getHeight() + yy;
 				if (k > W*H/2 + H/2)
 					break outerloop;
 				else {
-					if (dist > 0 && dist <= rmax ) {
-						dist = utils.linmap(utils.clamp(dist,rmin, rmax), rmin, rmax, 0, Nr-1);
+					if (dist >= 0 && dist <= rmax ) {
+						dist = utils.linmap(dist, rmin, rmax, 0, Nr-1);
+						if (dist < 0) // if dist < rmin
+							dist = 0; // store the result in the first component of d
 						d = (int)Math.round(dist);
-						// d and c are the indices of each Fourier rings
+						// d is the index of each Fourier rings
 						out[d]  += pixelsIrR[k]*pixelsIR[k] + pixelsIrI[k]*pixelsII[k]; // numerator
 						out[d+Nr]  += pixelsIR[k]*pixelsIR[k] + pixelsII[k]*pixelsII[k]; // denominator
 					}
